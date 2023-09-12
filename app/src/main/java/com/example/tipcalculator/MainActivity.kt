@@ -1,6 +1,7 @@
 package com.example.tipcalculator
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -13,27 +14,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AttachMoney
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
@@ -45,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tipcalculator.components.InputField
 import com.example.tipcalculator.ui.theme.TipCalculatorTheme
 
 class MainActivity : ComponentActivity() {
@@ -107,13 +105,29 @@ fun TopHeader(totalPerPerson: Double = 0.0) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun MainContent() {
+    BillForm() { billAmount ->
+        Log.d("Tag", "${billAmount.toInt() * 100}")
+    }
+}
+
+@Preview(showBackground = true)
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun BillForm(
+    modifier: Modifier = Modifier,
+    onValChange: (String) -> Unit = {} // here we have a trailing lambda, when we will call BillForm compose, we can get the value of bill
+) {
+
     val totalBillState = remember {
         mutableStateOf("")
     }
+    val validState = remember(totalBillState.value) {
+        totalBillState.value.trim().isNotEmpty()
+    }
+    val keyboardController = LocalSoftwareKeyboardController.current
     Surface(
         modifier = Modifier
             .padding(horizontal = 18.dp, vertical = 6.dp)
@@ -123,35 +137,23 @@ fun MainContent() {
         color = Color(0xFFFFFFFF),
         border = BorderStroke(1.dp, color = Color.Gray)
     ) {
-        val value by remember {
-            mutableStateOf("value")
-        }
         Column {
-            var textValue by remember {
-                mutableStateOf("")
-            }
-            OutlinedTextField(
-                value = textValue,
-                onValueChange = { textValue = it },
-                placeholder = {
-                    Text(text = "Enter Bill")
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Outlined.AttachMoney,
-                        contentDescription = "Dollar sign",
-                        tint = Color.Gray
-                    )
-                },
-                textStyle = TextStyle(textAlign = TextAlign.Left),
-                keyboardOptions = KeyboardOptions(autoCorrect = false,
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done),
-                singleLine = true,
+            InputField(
+                valueState = totalBillState,
+                labelId = "Enter Bill",
+                isSingleLine = true,
+                isEnable = true,
+                onAction = KeyboardActions {
+                    if (!validState) return@KeyboardActions
+                    // todo - onValueChanged
+                    onValChange(totalBillState.value.trim())
+                    keyboardController?.hide()
+                }
             )
         }
     }
 }
+
 
 //@Preview(showBackground = true)
 @Composable
