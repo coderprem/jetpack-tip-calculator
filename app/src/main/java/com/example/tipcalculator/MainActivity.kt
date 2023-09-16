@@ -1,7 +1,5 @@
 package com.example.tipcalculator
 
-import android.R
-import android.inputmethodservice.Keyboard
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -21,40 +19,39 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Minimize
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tipcalculator.components.InputField
 import com.example.tipcalculator.ui.theme.TipCalculatorTheme
+import com.example.tipcalculator.util.calculateTotalPerPerson
+import com.example.tipcalculator.util.calculateTotalTip
+import com.example.tipcalculator.widgets.RoundIconButton
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,13 +59,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApp {
                 Column {
-                    TopHeader(1.0)
+//                    TopHeader(1.0)
                     MainContent()
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun MyApp(content: @Composable () -> Unit) {
@@ -138,7 +136,22 @@ fun BillForm(
     val validState = remember(totalBillState.value) {
         totalBillState.value.trim().isNotEmpty()
     }
+    val sliderPositionState = remember {
+        mutableFloatStateOf(70f)
+    }
+    var numberOfPeople by remember {
+        mutableIntStateOf(1)
+    }
+    val tipPercentage = (sliderPositionState.floatValue * 1).toInt()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val tipAmountState = remember {
+        mutableDoubleStateOf(0.0)
+    }
+    val totalPerPersonState = remember {
+        mutableStateOf(0.0)
+    }
+
+    TopHeader(totalPerPersonState.value)
     Surface(
         modifier = Modifier
             .padding(horizontal = 18.dp, vertical = 6.dp)
@@ -165,24 +178,100 @@ fun BillForm(
                 }
             )
             if (validState) {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Split",
+                    modifier = modifier
+                        .padding(start = 12.dp)
+                        .align(alignment = CenterVertically),
+                    style = TextStyle(fontSize = 20.sp),
+                )
+                Spacer(modifier = modifier.width(150.dp))
                 Row(
-                    modifier = modifier,
-                    horizontalArrangement = Arrangement.Start,
+                    modifier = modifier.padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Split", modifier = modifier.padding(start = 12.dp),
-                        style = TextStyle(fontSize = 20.sp),
-                    )
-                    Spacer(modifier = modifier.width(120.dp))
-                    Row(
-                        modifier = modifier.padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Icon(imageVector = Icons.Outlined.Minimize, contentDescription = "minus")
-                        Icon(imageVector = Icons.Outlined.Add, contentDescription = "add")
-                    }
+                    RoundIconButton(imageVector = Icons.Default.Remove, onClick = {
+                        if (numberOfPeople > 1) numberOfPeople -= 1
+                        totalPerPersonState.value =
+                            calculateTotalPerPerson(
+                                totalBill = totalBillState.value.toDouble(),
+                                splitBy = numberOfPeople,
+                                tipPercentage = tipPercentage
+                            )
+
+                    })
+                    Text(text = "$numberOfPeople", modifier.padding(horizontal = 12.dp))
+                    RoundIconButton(imageVector = Icons.Default.Add, onClick = {
+                        numberOfPeople += 1
+                        totalPerPersonState.value =
+                            calculateTotalPerPerson(
+                                totalBill = totalBillState.value.toDouble(),
+                                splitBy = numberOfPeople,
+                                tipPercentage = tipPercentage
+                            )
+
+                    })
                 }
+            }
+            // tip row
+            Row(
+                modifier = modifier.padding(vertical = 12.dp, horizontal = 2.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tip",
+                    style = TextStyle(fontSize = 20.sp),
+                    modifier = modifier
+                        .padding(start = 12.dp)
+                        .align(alignment = CenterVertically),
+                )
+                Spacer(modifier = modifier.width(200.dp))
+                Text(
+                    text = "${tipAmountState.doubleValue}",
+                    style = TextStyle(fontSize = 20.sp),
+                    modifier = modifier
+                        .padding(start = 12.dp)
+                        .align(alignment = CenterVertically),
+                )
+            }
+            // slider
+            Column(
+                modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "$tipPercentage %")
+                Slider(
+                    value = sliderPositionState.floatValue,
+                    onValueChange = {
+                        sliderPositionState.floatValue = it
+                        tipAmountState.doubleValue =
+                            calculateTotalTip(totalBillState.value.toDouble(), tipPercentage)
+                        totalPerPersonState.value =
+                            calculateTotalPerPerson(
+                                totalBill = totalBillState.value.toDouble(),
+                                splitBy = numberOfPeople,
+                                tipPercentage = tipPercentage
+                            )
+                        Log.d("tipAmount", "${tipAmountState.doubleValue}")
+                    },
+                    modifier.padding(horizontal = 12.dp),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.secondaryContainer,
+                    ),
+                    steps = 100,
+                    valueRange = 0f..100f
+                )
+            }
             }
         }
     }
