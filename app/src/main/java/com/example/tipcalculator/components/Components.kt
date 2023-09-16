@@ -1,5 +1,7 @@
 package com.example.tipcalculator.components
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,7 +44,7 @@ fun InputField(
     onAction: KeyboardActions = KeyboardActions.Default
 ) {
     OutlinedTextField(
-        modifier = modifier.padding(bottom = 10.dp, start = 10.dp, end = 10.dp),
+        modifier = modifier.padding(bottom = 10.dp, start = 10.dp, end = 10.dp).fillMaxWidth(),
         value = valueState.value,
         onValueChange = { valueState.value = it },
         label = { Text(text = labelId) },
